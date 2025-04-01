@@ -44,13 +44,13 @@ Required arguments:
 - `tokenizer`: Hugging Face tokenizer name (e.g., `gpt2`, `bert-base-uncased`)
 
 Optional arguments:
-- `n_samples`: Number of samples to evaluate (default: 1000)
-- `english_only`: Filter only English messages (flag)
+- `n_samples`: Number of samples to evaluate per dataset (default: 1000)
+- `english_only`: Filter only English messages
 
 Example:
 
 ```bash
-python src/analyze_tokenizer.py --tokenizer gpt2 --n_samples 500 --english_only
+python src/analyze_tokenizer.py --tokenizer gpt2 --n_samples 10000 --english_only
 ```
 
 ## 📊 Output
