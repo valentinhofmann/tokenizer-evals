@@ -77,7 +77,6 @@ target/
 
 # Jupyter Notebook
 .ipynb_checkpoints
-.ipynb
 
 # IPython
 profile_default/
@@ -173,3 +172,4 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+src/tokenizer_analysis.ipynb

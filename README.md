@@ -41,24 +41,23 @@ python src/analyze_tokenizer.py --tokenizer <tokenizer-name> [--n_samples N] [--
 ```
 
 Required arguments:
--- `tokenizer`: Hugging Face tokenizer name (e.g., `gpt2`, `bert-base-uncased`)
+- `tokenizer`: Hugging Face tokenizer name (e.g., `gpt2`, `bert-base-uncased`)
 
 Optional arguments:
--- `n_samples`: Number of samples to evaluate (default: 1000)
-
--- `english_only`: Filter only English messages (flag)
+- `n_samples`: Number of samples to evaluate (default: 1000)
+- `english_only`: Filter only English messages (flag)
 
 Example:
 
-````bash
+```bash
 python src/analyze_tokenizer.py --tokenizer gpt2 --n_samples 500 --english_only
 ```
 
-📊 Output
+## 📊 Output
 
 For each dataset, the script prints fertility statistics like:
 
-```
+```bash
 --- FERTILITY statistics on wildchat ---
 Mean:     1.378
 Std Dev:  0.292
@@ -69,7 +68,7 @@ Median:   1.349
 75%:      1.502
 ```
 
-📚 Supported Datasets
+## 📚 Supported Datasets
 
 - WildChat (`allenai/WildChat`)
 
