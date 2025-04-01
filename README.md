@@ -45,7 +45,7 @@ Required arguments:
 
 Optional arguments:
 - `n_samples`: Number of samples to evaluate per dataset (default: 1000)
-- `english_only`: Filter only English messages
+- `english_only`: Filter only English messages (flag)
 
 Example:
 
