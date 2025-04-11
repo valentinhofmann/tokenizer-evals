@@ -31,31 +31,37 @@ def main():
 
     # Load tokenizer
     tokenizer = AutoTokenizer.from_pretrained(args.tokenizer)
+    metric = "fertility"
+    results = {}
+    task_name = args.dataset if args.dataset else "all"
 
     if args.dataset:
         logger.info(f" Evaluating {args.tokenizer} on dataset: {args.dataset}")
-        process_dataset(
-            args.dataset, tokenizer, args.n_samples, args.english_only, args.write_file
+        result = process_dataset(
+            args.dataset, tokenizer, args.n_samples, args.english_only
         )
+        results[args.dataset] = result
+        utils.display_metric(args.dataset, result, metric)
     else:
         logger.info(
             f" Evaluating {args.tokenizer} on all datasets with up to {args.n_samples} samples"
         )
+
         for name in utils.ALL_DATASETS:
-            process_dataset(
-                name, tokenizer, args.n_samples, args.english_only, args.write_file
-            )
+            result = process_dataset(name, tokenizer, args.n_samples, args.english_only)
+
+            results[name] = result
+            utils.display_metric(name, result, metric)
+
+    if args.write_file:
+        utils.write_json(task_name, results, metric, tokenizer)
 
 
-def process_dataset(dataset, tokenizer, n_samples, english_only, write_file=False):
+def process_dataset(dataset, tokenizer, n_samples, english_only):
     data = utils.load_data(dataset, n_samples, english_only)
     result = utils.compute_metrics(data, tokenizer)
-    metric = "fertility"
 
-    if write_file:
-        utils.write_json(dataset, result, metric, tokenizer)
-
-    utils.display_metric(dataset, result, metric)
+    return result
 
 
 if __name__ == "__main__":

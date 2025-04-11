@@ -155,28 +155,31 @@ def compute_metrics(data, tokenizer, text_col="text"):
     return data
 
 
-def write_json(dataset_name, data, metric, tokenizer, output_dir=".output"):
+def write_json(name, results, metric, tokenizer, output_dir=".output"):
     import os
     import re
 
     os.makedirs(output_dir, exist_ok=True)
-
-    if metric not in data.columns:
-        raise ValueError(f"Metric '{metric}' not found in dataset.")
-
-    values = data[metric]
-    out = {}
     safe_tokenizer_name = re.sub(r"[^\w\-_.]", "_", tokenizer.name_or_path)
 
-    with open(
-        f"{output_dir}/{safe_tokenizer_name}_{dataset_name}_{metric}.json", "w"
-    ) as f:
-        out["mean"] = values.mean()
-        out["std"] = values.std()
-        out["min"] = values.min()
-        out["max"] = values.max()
-        out["25pct"] = values.quantile(0.25)
-        out["median"] = values.median()
+    out = {safe_tokenizer_name: {}}
+    for key, data in results.items():
+
+        if metric not in data.columns:
+            raise ValueError(f"Metric '{metric}' not found in dataset.")
+
+        to_update = out[safe_tokenizer_name].setdefault(key, {})
+
+        values = data[metric]
+
+        to_update["mean"] = values.mean()
+        to_update["std"] = values.std()
+        to_update["min"] = values.min()
+        to_update["max"] = values.max()
+        to_update["25pct"] = values.quantile(0.25)
+        to_update["median"] = values.median()
+
+    with open(f"{output_dir}/{safe_tokenizer_name}_{name}_{metric}.json", "w") as f:
         f.write(json.dumps(out, indent=4))
 
 
