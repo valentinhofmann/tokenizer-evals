@@ -1,0 +1,14 @@
+[project]
+name = "tokenizer-evals"
+version = "0.1.0"
+description = "A package for evaluating tokenizers"
+authors = [
+  {email = "valentinh@allenai.org "}
+]
+dependencies = [
+  "datasets==3.5.0",
+  "transformers==4.50.3",
+]
+
+[tool.setuptools]
+packages = ["src"]
