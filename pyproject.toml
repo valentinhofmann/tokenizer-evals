@@ -10,6 +10,7 @@ dependencies = [
   "datasets==3.5.0",
   "transformers==4.50.3",
   "rich==14.0.0",
+  "uniseg>=0.10.0",
 ]
 
 [tool.setuptools]

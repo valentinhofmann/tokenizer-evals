@@ -2,7 +2,6 @@ import argparse
 import datetime
 import json
 import logging
-import math
 import os
 import random
 import re
@@ -11,6 +10,7 @@ from collections import Counter
 from dataclasses import dataclass
 from typing import Dict, List
 
+import numpy as np
 import regex as re
 from rich.console import Console
 from rich.table import Table
@@ -80,11 +80,22 @@ class TokenizerEvaluator:
         return total_bytes / total_tokens if total_tokens > 0 else 0
 
     def _calculate_tokens_per_word(
-        self, raw_texts: List[str], tokenized_texts: List[List[int]]
+        self,
+        raw_texts: List[str],
+        tokenized_texts: List[List[int]],
+        use_uniseg: bool = True,
     ) -> float:
         """Calculate average tokens per word"""
-        total_words = sum(len(text.split()) for text in raw_texts)
+        if use_uniseg:
+            import uniseg.wordbreak
+
+            total_words = sum(
+                len(list(uniseg.wordbreak.words(text))) for text in raw_texts
+            )
+        else:
+            total_words = sum(len(text.split()) for text in raw_texts)
         total_tokens = sum(len(tokens) for tokens in tokenized_texts)
+
         return total_tokens / total_words if total_words > 0 else 0
 
     def _calculate_tokens_per_char(
@@ -206,13 +217,22 @@ class TokenizerEvaluator:
             token_counts.update(seq)
 
         total_tokens = sum(token_counts.values())
-        probs = [count / total_tokens for count in token_counts.values()]
+        token_probs = np.array(
+            [count / total_tokens for count in token_counts.values()]
+        )
 
-        entropy = -sum(p * math.log2(p) for p in probs if p > 0)
+        shannon_entropy = -np.sum(
+            token_probs * np.log2(token_probs, where=token_probs > 0)
+        )
+        alpha = 2.5
+        renyi_entropy = (
+            1 / (1 - alpha) * np.log2(np.sum(np.array(token_probs) ** alpha))
+        )
 
         return {
             "unique_token_ratio": len(token_counts) / total_tokens,
-            "entropy": entropy,
+            "shannon_entropy": shannon_entropy,
+            "renyi_entropy": renyi_entropy,
             "top_10_token_ratio": sum(
                 count for _, count in token_counts.most_common(10)
             )
@@ -301,7 +321,7 @@ def main():
 
         table.add_row("[bold]Token Distribution Statistics[/]", "")
         for k, v in results.token_distribution_stats.items():
-            if k == "entropy":
+            if "_entropy" in k:
                 table.add_row(f"  {k}", f"{v:.2f}")
             else:
                 table.add_row(f"  {k}", f"{v:.2%}")

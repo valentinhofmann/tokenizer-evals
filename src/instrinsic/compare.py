@@ -114,6 +114,92 @@ def create_dataset_table(data, dataset):
     console.print()  # Add blank line between tables
 
 
+def create_summary_table(data):
+    """Create a summary table showing average metrics across all datasets for each tokenizer."""
+    console = Console()
+
+    table = Table(title="Summary: Average Metrics Across All Datasets")
+    table.add_column("Metric", style="cyan")
+
+    # Get all tokenizers
+    all_tokenizers = sorted(data.keys())
+
+    # Add columns for each tokenizer
+    for tokenizer in all_tokenizers:
+        table.add_column(tokenizer, justify="right")
+
+    # Get all metrics across all datasets and tokenizers
+    all_metrics = set()
+
+    for tokenizer, datasets in data.items():
+        for dataset, metrics in datasets.items():
+            for metric, value in metrics.items():
+                if isinstance(value, dict):
+                    for sub_metric in value.keys():
+                        all_metrics.add(f"{metric}.{sub_metric}")
+                else:
+                    all_metrics.add(metric)
+
+    # Calculate averages for each metric for each tokenizer
+    averages = {}
+
+    for metric in all_metrics:
+        averages[metric] = {}
+
+        for tokenizer in all_tokenizers:
+            values = []
+
+            for dataset, metrics in data[tokenizer].items():
+                parent_metric, *sub_parts = metric.split(".", 1)
+
+                if parent_metric in metrics:
+                    if sub_parts:
+                        # Handle nested metrics
+                        sub_metric = sub_parts[0]
+                        if sub_metric in metrics[parent_metric]:
+                            value = metrics[parent_metric][sub_metric]
+                            if isinstance(value, (int, float)):
+                                values.append(value)
+                    else:
+                        # Handle top-level metrics
+                        value = metrics[parent_metric]
+                        if isinstance(value, (int, float)):
+                            values.append(value)
+
+            if values:
+                averages[metric][tokenizer] = sum(values) / len(values)
+
+    # Add rows for each metric
+    for metric in sorted(all_metrics):
+        row = [metric]
+        metric_values = averages[metric]
+
+        # Find max value for highlighting
+        numeric_values = [
+            v for v in metric_values.values() if isinstance(v, (int, float))
+        ]
+        max_value = max(numeric_values) if numeric_values else None
+
+        # Add formatted values to the row
+        for tokenizer in all_tokenizers:
+            if tokenizer in metric_values:
+                value = metric_values[tokenizer]
+                value_str = format_value(value)
+
+                # Bold maximum values
+                if isinstance(value, (int, float)) and value == max_value:
+                    row.append(Text(value_str, style="bold green"))
+                else:
+                    row.append(value_str)
+            else:
+                row.append("N/A")
+
+        table.add_row(*row)
+
+    console.print(table)
+    console.print()  # Add blank line
+
+
 def compare_tokenizers(data, dataset_filter=None):
     """Compare tokenizers across datasets, creating one table per dataset."""
     # Get all datasets
@@ -131,7 +217,10 @@ def compare_tokenizers(data, dataset_filter=None):
                 f"[bold red]Dataset '{dataset_filter}' not found in data[/bold red]"
             )
     else:
-        # Create a table for each dataset
+        # First create a summary table with averages across datasets
+        create_summary_table(data)
+
+        # Then create a table for each dataset
         for dataset in sorted(all_datasets):
             create_dataset_table(data, dataset)
 
