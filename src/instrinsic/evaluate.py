@@ -256,6 +256,12 @@ def main():
         help="Path to tokenizer.json or HuggingFace tokenizer name",
     )
     parser.add_argument(
+        "--name",
+        type=str,
+        default=None,
+        help="Name of the tokenizer (default: tokenizer name from path)",
+    )
+    parser.add_argument(
         "--n_samples",
         type=int,
         default=1000,
@@ -338,7 +344,7 @@ def main():
         except:
             tokenizer_name = args.tokenizer
 
-        safe_tokenizer_name = re.sub(r"[^\w\-_.]", "_", tokenizer_name)
+        safe_tokenizer_name = re.sub(r"[^\w\-_.]", "_", args.name or tokenizer_name)
         output_file = f"{args.output_dir}/{safe_tokenizer_name}_eval_{timestamp}.json"
 
         serializable_results = {}
