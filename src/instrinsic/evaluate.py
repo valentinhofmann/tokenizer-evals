@@ -12,6 +12,7 @@ from typing import Dict, List
 
 import numpy as np
 import regex as re
+import uniseg.wordbreak
 from rich.console import Console
 from rich.table import Table
 from transformers import AutoTokenizer
@@ -56,7 +57,7 @@ class TokenizerEvaluator:
             avg_tokens_per_char=self._calculate_tokens_per_char(texts, tokenized),
             oov_rate=self._calculate_oov_rate(tokenized),
             subword_stats=self._analyze_subword_patterns(tokenized),
-            token_distribution_stats=self._analyze_token_distribution(tokenized),
+            token_distribution_stats=self._analyze_token_distribution(texts, tokenized),
         )
 
         return results
@@ -87,8 +88,6 @@ class TokenizerEvaluator:
     ) -> float:
         """Calculate average tokens per word"""
         if use_uniseg:
-            import uniseg.wordbreak
-
             total_words = sum(
                 len(list(uniseg.wordbreak.words(text))) for text in raw_texts
             )
@@ -208,7 +207,7 @@ class TokenizerEvaluator:
         }
 
     def _analyze_token_distribution(
-        self, tokenized_texts: List[List[int]]
+        self, raw_texts: List[str], tokenized_texts: List[List[int]]
     ) -> Dict[str, float]:
         """Analyze token distribution statistics"""
         token_counts = Counter()
@@ -228,11 +227,27 @@ class TokenizerEvaluator:
         renyi_entropy = (
             1 / (1 - alpha) * np.log2(np.sum(np.array(token_probs) ** alpha))
         )
+        # Calculate word frequencies for uniseg word breakdown
+        word_counts = Counter()
+        for text in raw_texts:
+            word_counts.update(list(uniseg.wordbreak.words(text)))
+
+        # Calculate probability distribution
+        total_words = sum(word_counts.values())
+        word_probs = np.array([count / total_words for count in word_counts.values()])
+
+        # Calculate Renyi entropy with the same alpha as token distribution
+        uniseg_entropy = (
+            1 / (1 - alpha) * np.log2(np.sum(word_probs**alpha))
+            if total_words > 0
+            else 0
+        )
 
         return {
             "unique_token_ratio": len(token_counts) / total_tokens,
-            "shannon_entropy": shannon_entropy,
-            "renyi_entropy": renyi_entropy,
+            "tokens.shannon.entropy": shannon_entropy,
+            "tokens.renyi.entropy": renyi_entropy,
+            "uniseg.renyi.entropy": uniseg_entropy,
             "top_10_token_ratio": sum(
                 count for _, count in token_counts.most_common(10)
             )
@@ -327,7 +342,7 @@ def main():
 
         table.add_row("[bold]Token Distribution Statistics[/]", "")
         for k, v in results.token_distribution_stats.items():
-            if "_entropy" in k:
+            if ".entropy" in k:
                 table.add_row(f"  {k}", f"{v:.2f}")
             else:
                 table.add_row(f"  {k}", f"{v:.2%}")
@@ -356,7 +371,7 @@ def main():
                 "avg_tokens_per_char": result.avg_tokens_per_char,
                 "oov_rate": result.oov_rate,
                 "subword_stats": result.subword_stats,
-                "token_distribution_stats": result.token_distribution_stats,
+                "distribution_stats": result.token_distribution_stats,
             }
 
         with open(output_file, "w") as f:
