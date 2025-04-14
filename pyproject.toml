@@ -18,3 +18,4 @@ packages = ["src"]
 [project.scripts]
 eval-fertility = "src.analyze_tokenizer:main"
 eval-extras = "src.instrinsic.evaluate:main"
+eval-compare = "src.instrinsic.compare:main"

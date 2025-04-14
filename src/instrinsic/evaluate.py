@@ -12,11 +12,11 @@ from dataclasses import dataclass
 from typing import Dict, List
 
 import regex as re
+from rich.console import Console
+from rich.table import Table
 from transformers import AutoTokenizer
 
 from src import utils
-from rich.console import Console
-from rich.table import Table
 
 
 @dataclass
