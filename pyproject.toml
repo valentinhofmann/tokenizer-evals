@@ -9,7 +9,12 @@ requires-python = ">=3.9"
 dependencies = [
   "datasets==3.5.0",
   "transformers==4.50.3",
+  "rich==14.0.0",
 ]
 
 [tool.setuptools]
 packages = ["src"]
+
+[project.scripts]
+eval-fertility = "src.analyze_tokenizer:main"
+eval-extras = "src.instrinsic.evaluate:main"
