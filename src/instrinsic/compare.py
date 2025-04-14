@@ -510,12 +510,10 @@ def compare_tokenizers(data, dataset_filter=None, reference_tokenizer=None):
                 f"[bold red]Dataset '{dataset_filter}' not found in data[/bold red]"
             )
     else:
-        # First create a summary table with averages across datasets
-        create_summary_table(data, reference_tokenizer)
-
-        # Then create a table for each dataset
         for dataset in sorted(all_datasets):
             create_dataset_table(data, dataset, reference_tokenizer)
+
+        create_summary_table(data, reference_tokenizer)
 
 
 def main():
