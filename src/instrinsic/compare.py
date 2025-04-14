@@ -97,18 +97,23 @@ def create_dataset_table(data, dataset, reference_tokenizer=None):
             f"[bold yellow]Warning: Reference tokenizer '{reference_tokenizer}' not found for dataset '{dataset}'[/bold yellow]"
         )
 
-    # Add columns for each tokenizer
-    for tokenizer in sorted(tokenizers):
-        table.add_column(tokenizer, justify="right")
-
-    # Add delta columns if reference tokenizer exists
+    # Order tokenizers: alphabetical with reference tokenizer at the end
+    ordered_tokenizers = sorted([t for t in tokenizers if t != reference_tokenizer])
     if reference_exists:
-        table.add_column(
-            f"Abs Δ vs {reference_tokenizer}", justify="right", style="magenta"
-        )
-        table.add_column(
-            f"Rel Δ % vs {reference_tokenizer}", justify="right", style="magenta"
-        )
+        ordered_tokenizers.append(reference_tokenizer)
+
+    # Add columns for each tokenizer
+    for tokenizer in ordered_tokenizers:
+        # Mark reference tokenizer with an asterisk
+        if tokenizer == reference_tokenizer:
+            table.add_column(f"{tokenizer}*", justify="right")
+        else:
+            table.add_column(tokenizer, justify="right")
+
+    # Add shorter delta columns if reference tokenizer exists
+    if reference_exists:
+        table.add_column(f"Abs Δ*", justify="right", style="magenta")
+        table.add_column(f"Rel Δ%*", justify="right", style="magenta")
 
     # Get all metrics for this dataset (excluding uniseg.renyi.entropy)
     all_metrics = set()
@@ -135,7 +140,7 @@ def create_dataset_table(data, dataset, reference_tokenizer=None):
         metric_values = {}
 
         # Collect values for this metric across tokenizers
-        for tokenizer in sorted(tokenizers):
+        for tokenizer in ordered_tokenizers:
             parent_metric, *sub_parts = metric.split(".", 1)
             if parent_metric in data[tokenizer][dataset]:
                 if sub_parts:
@@ -172,7 +177,7 @@ def create_dataset_table(data, dataset, reference_tokenizer=None):
                 best_value = None
 
         # Add formatted values to the row
-        for tokenizer in sorted(tokenizers):
+        for tokenizer in ordered_tokenizers:
             if tokenizer in metric_values:
                 value = metric_values[tokenizer]
                 value_str = format_value(value)
@@ -206,7 +211,7 @@ def create_dataset_table(data, dataset, reference_tokenizer=None):
 
                 # Find the best non-reference value based on polarity
                 best_non_ref_value = None
-                for tokenizer in sorted(tokenizers):
+                for tokenizer in ordered_tokenizers:
                     if tokenizer != reference_tokenizer and tokenizer in metric_values:
                         val = metric_values[tokenizer]
                         if isinstance(val, (int, float)):
@@ -298,18 +303,23 @@ def create_summary_table(data, reference_tokenizer=None):
             f"[bold yellow]Warning: Reference tokenizer '{reference_tokenizer}' not found[/bold yellow]"
         )
 
-    # Add columns for each tokenizer
-    for tokenizer in all_tokenizers:
-        table.add_column(tokenizer, justify="right")
-
-    # Add delta columns if reference tokenizer exists
+    # Order tokenizers: alphabetical with reference tokenizer at the end
+    ordered_tokenizers = sorted([t for t in all_tokenizers if t != reference_tokenizer])
     if reference_exists:
-        table.add_column(
-            f"Abs Δ vs {reference_tokenizer}", justify="right", style="magenta"
-        )
-        table.add_column(
-            f"Rel Δ % vs {reference_tokenizer}", justify="right", style="magenta"
-        )
+        ordered_tokenizers.append(reference_tokenizer)
+
+    # Add columns for each tokenizer
+    for tokenizer in ordered_tokenizers:
+        # Mark reference tokenizer with an asterisk
+        if tokenizer == reference_tokenizer:
+            table.add_column(f"{tokenizer}*", justify="right")
+        else:
+            table.add_column(tokenizer, justify="right")
+
+    # Add shorter delta columns if reference tokenizer exists
+    if reference_exists:
+        table.add_column(f"Abs Δ*", justify="right", style="magenta")
+        table.add_column(f"Rel Δ%*", justify="right", style="magenta")
 
     # Get all metrics across all datasets and tokenizers (excluding uniseg.renyi.entropy)
     all_metrics = set()
@@ -384,7 +394,7 @@ def create_summary_table(data, reference_tokenizer=None):
                 best_value = None
 
         # Add formatted values to the row
-        for tokenizer in all_tokenizers:
+        for tokenizer in ordered_tokenizers:
             if tokenizer in metric_values:
                 value = metric_values[tokenizer]
                 value_str = format_value(value)
@@ -418,7 +428,7 @@ def create_summary_table(data, reference_tokenizer=None):
 
                 # Find the best non-reference value based on polarity
                 best_non_ref_value = None
-                for tokenizer in all_tokenizers:
+                for tokenizer in ordered_tokenizers:
                     if tokenizer != reference_tokenizer and tokenizer in metric_values:
                         val = metric_values[tokenizer]
                         if isinstance(val, (int, float)):
