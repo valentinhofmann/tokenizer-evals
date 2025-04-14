@@ -361,11 +361,27 @@ def create_summary_table(data, reference_tokenizer=None):
         row = [metric]
         metric_values = averages[metric]
 
-        # Find max value for highlighting
+        # Find best value for highlighting based on metric polarity
         numeric_values = [
             v for v in metric_values.values() if isinstance(v, (int, float))
         ]
-        max_value = max(numeric_values) if numeric_values else None
+
+        # Determine if higher or lower is better for this metric
+        higher_is_better = None
+        for metric_key, polarity in METRIC_POLARITY.items():
+            if metric_key == metric or metric.endswith("." + metric_key.split(".")[-1]):
+                higher_is_better = polarity
+                break
+
+        # Find the best value according to the metric's polarity
+        best_value = None
+        if numeric_values:
+            if higher_is_better is True:  # Higher is better
+                best_value = max(numeric_values)
+            elif higher_is_better is False:  # Lower is better
+                best_value = min(numeric_values)
+            else:  # Neutral - don't highlight any value
+                best_value = None
 
         # Add formatted values to the row
         for tokenizer in all_tokenizers:
@@ -373,8 +389,12 @@ def create_summary_table(data, reference_tokenizer=None):
                 value = metric_values[tokenizer]
                 value_str = format_value(value)
 
-                # Bold maximum values
-                if isinstance(value, (int, float)) and value == max_value:
+                # Bold best values based on the polarity
+                if (
+                    isinstance(value, (int, float))
+                    and best_value is not None
+                    and value == best_value
+                ):
                     row.append(Text(value_str, style="bold green"))
                 else:
                     row.append(value_str)
