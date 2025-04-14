@@ -73,11 +73,11 @@ class TokenizerEvaluator:
     def _calculate_compression_ratio(
         self, raw_texts: List[str], tokenized_texts: List[List[int]]
     ) -> float:
-        """Calculate compression ratio (chars/tokens)"""
-        total_chars = sum(len(text) for text in raw_texts)
+        """Calculate compression ratio (bytes/tokens)"""
+        total_bytes = sum(len(text.encode("utf-8")) for text in raw_texts)
         total_tokens = sum(len(tokens) for tokens in tokenized_texts)
 
-        return total_chars / total_tokens if total_tokens > 0 else 0
+        return total_bytes / total_tokens if total_tokens > 0 else 0
 
     def _calculate_tokens_per_word(
         self, raw_texts: List[str], tokenized_texts: List[List[int]]
