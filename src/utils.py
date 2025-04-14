@@ -42,9 +42,9 @@ CODE_COLUMNS = {
 }
 
 CORE_COLUMNS = {
-    "mmlu": ["question", "choices"],
-    "arc_challenge": ["question", "choices"],
-    "gsm8k": ["question", "answer"],
+    "mmlu": ["question"],
+    "arc_challenge": ["question"],
+    "gsm8k": ["question"],
 }
 
 CONVERSATION_COLS = {"wildchat": "conversation", "chatbot_arena": "conversation_a"}
@@ -77,7 +77,7 @@ def load_core_data(dataset_name, n_samples=1000):
     core_data_sample["text"] = core_data_sample.apply(
         lambda x: "\n".join(
             [
-                "\n".join(x[col]) if col == "choices" else "\n".join(x[col])
+                " ".join(x[col]) if col == "choices" else "".join(x[col])
                 for col in CORE_COLUMNS[dataset_name]
             ]
         ),

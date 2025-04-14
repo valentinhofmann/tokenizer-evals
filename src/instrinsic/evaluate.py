@@ -27,7 +27,6 @@ class TokenizerEvalResults:
     avg_tokens_per_char: float
     oov_rate: float
     subword_stats: Dict[str, float]
-    special_case_metrics: Dict[str, float]
     token_distribution_stats: Dict[str, float]
 
 
@@ -45,7 +44,10 @@ class TokenizerEvaluator:
         if len(texts) > sample_size:
             texts = random.sample(texts, sample_size)
 
-        tokenized = [self.tokenizer.encode(text) for text in texts]
+        tokenized = []
+        for text in texts:
+            tokens = self.tokenizer.encode(text)
+            tokenized.append(tokens)
 
         results = TokenizerEvalResults(
             vocab_coverage=self._calculate_vocab_coverage(tokenized),
@@ -54,7 +56,6 @@ class TokenizerEvaluator:
             avg_tokens_per_char=self._calculate_tokens_per_char(texts, tokenized),
             oov_rate=self._calculate_oov_rate(tokenized),
             subword_stats=self._analyze_subword_patterns(tokenized),
-            special_case_metrics=self._evaluate_special_cases(texts),
             token_distribution_stats=self._analyze_token_distribution(tokenized),
         )
 
@@ -63,8 +64,10 @@ class TokenizerEvaluator:
     def _calculate_vocab_coverage(self, tokenized_texts: List[List[int]]) -> float:
         """Calculate what percentage of vocabulary tokens that are actually used"""
         used_tokens = set()
+
         for seq in tokenized_texts:
             used_tokens.update(seq)
+
         return len(used_tokens) / self.vocab_size
 
     def _calculate_compression_ratio(
@@ -73,6 +76,7 @@ class TokenizerEvaluator:
         """Calculate compression ratio (chars/tokens)"""
         total_chars = sum(len(text) for text in raw_texts)
         total_tokens = sum(len(tokens) for tokens in tokenized_texts)
+
         return total_chars / total_tokens if total_tokens > 0 else 0
 
     def _calculate_tokens_per_word(
@@ -93,7 +97,39 @@ class TokenizerEvaluator:
 
     def _calculate_oov_rate(self, tokenized_texts: List[List[int]]) -> float:
         """Calculate OOV rate using unknown token ID"""
-        unk_token_id = self.tokenizer.convert_tokens_to_ids("[UNK]")
+        # Get the actual unknown token ID for this tokenizer
+        unk_token_id = None
+
+        # Try the standard attribute first
+        if (
+            hasattr(self.tokenizer, "unk_token")
+            and self.tokenizer.unk_token is not None
+        ):
+            unk_token_id = self.tokenizer.convert_tokens_to_ids(
+                self.tokenizer.unk_token
+            )
+
+        if unk_token_id is None:
+            for common_unk in [
+                "[UNK]",
+                "<unk>",
+                "UNK",
+                "<unknown>",
+                "UNKNOWN",
+                "<oov>",
+                "OOV",
+            ]:
+                try:
+                    unk_id = self.tokenizer.convert_tokens_to_ids(common_unk)
+                    # Make sure it's not just converting to a regular token
+                    if (
+                        unk_id is not None and unk_id != 0
+                    ):  # Most tokenizers reserve 0 or None for padding
+                        unk_token_id = unk_id
+                        break
+                except:
+                    continue
+
         if unk_token_id is None:
             return 0.0
 
@@ -105,19 +141,55 @@ class TokenizerEvaluator:
         self, tokenized_texts: List[List[int]]
     ) -> Dict[str, float]:
         """Analyze subword tokenization patterns"""
+        # Get the original token strings from token IDs
         token_strings = []
         for seq in tokenized_texts:
-            token_strings.extend(self.tokenizer.decode(seq).split())
+            for token_id in seq:
+                # Use convert_ids_to_tokens which handles the conversion properly
+                try:
+                    token_strings.append(self.tokenizer.convert_ids_to_tokens(token_id))
+                except (AttributeError, TypeError):
+                    # Fallback to decoding as a single token
+                    token_strings.append(self.tokenizer.decode([token_id]))
 
         subword_counts = Counter()
-        total_tokens = 0
+        total_tokens = len(token_strings)
+        # Common subword markers in different tokenizers
+        bert_prefix = "##"
+        sentencepiece_prefix = "▁"  # Often at the beginning of words
+        byte_level_prefix = "Ġ"  # Used in GPT-2, RoBERTa
 
         for token in token_strings:
-            if token.startswith("##") or token.endswith("##"):
+            if token.startswith(bert_prefix):
                 subword_counts["subword"] += 1
+            elif (
+                sentencepiece_prefix in self.tokenizer.all_special_tokens
+                or byte_level_prefix in self.tokenizer.all_special_tokens
+            ):
+                if (
+                    not (
+                        token.startswith(sentencepiece_prefix)
+                        or token.startswith(byte_level_prefix)
+                    )
+                    and token not in self.tokenizer.all_special_tokens
+                ):
+                    subword_counts["subword"] += 1
+                else:
+                    subword_counts["full_word"] += 1
+
+            # Fallback: if token has no spaces and isn't a special token, it's probably a subword
+            elif (
+                not re.search(r"\s", token)
+                and len(token) > 0
+                and token not in self.tokenizer.all_special_tokens
+            ):
+                # If it's a very short token (1-2 chars) or contains unusual characters, likely a subword
+                if len(token) <= 2 or not token[0].isalnum():
+                    subword_counts["subword"] += 1
+                else:
+                    subword_counts["full_word"] += 1
             else:
                 subword_counts["full_word"] += 1
-            total_tokens += 1
 
         return {
             "subword_ratio": (
@@ -128,27 +200,13 @@ class TokenizerEvaluator:
             ),
         }
 
-    def _evaluate_special_cases(self, texts: List[str]) -> Dict[str, float]:
-        """Evaluate handling of special cases"""
-        url_pattern = r"http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\\(\\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+"
-        email_pattern = r"[\w\.-]+@[\w\.-]+"
-        number_pattern = r"\d+"
-
-        special_cases = {"urls": 0, "emails": 0, "numbers": 0}
-
-        for text in texts:
-            special_cases["urls"] += len(re.findall(url_pattern, text))
-            special_cases["emails"] += len(re.findall(email_pattern, text))
-            special_cases["numbers"] += len(re.findall(number_pattern, text))
-
-        total_texts = len(texts)
-        return {k: v / total_texts for k, v in special_cases.items()}
-
     def _analyze_token_distribution(
         self, tokenized_texts: List[List[int]]
     ) -> Dict[str, float]:
         """Analyze token distribution statistics"""
+        all_tokens = sum(len(seq) for seq in tokenized_texts)
         token_counts = Counter()
+
         for seq in tokenized_texts:
             token_counts.update(seq)
 
@@ -158,7 +216,7 @@ class TokenizerEvaluator:
         entropy = -sum(p * math.log2(p) for p in probs if p > 0)
 
         return {
-            "unique_token_ratio": len(token_counts) / self.vocab_size,
+            "unique_token_ratio": len(token_counts) / all_tokens,
             "entropy": entropy,
             "top_10_token_ratio": sum(
                 count for _, count in token_counts.most_common(10)
@@ -170,7 +228,6 @@ class TokenizerEvaluator:
 def main():
     sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-    # Set up logging
     logger = logging.getLogger(__name__)
     logging.basicConfig(level=logging.INFO)
 
@@ -213,9 +270,7 @@ def main():
 
     tokenizer = AutoTokenizer.from_pretrained(args.tokenizer)
     evaluator = TokenizerEvaluator(tokenizer)
-
     datasets_to_process = [args.dataset] if args.dataset else sorted(utils.ALL_DATASETS)
-
     all_results = {}
 
     for dataset_name in datasets_to_process:
@@ -229,9 +284,11 @@ def main():
         results = evaluator.evaluate_sample(texts)
         all_results[dataset_name] = results
 
-        console = Console()
+        console = Console(width=80, force_terminal=True)
 
-        table = Table(title=f"Tokenizer Evaluation Results for {dataset_name}")
+        table = Table(
+            title=f"Tokenizer Evaluation Results for {dataset_name}", expand=True
+        )
         table.add_column("Metric", style="bold")
         table.add_column("Value")
 
@@ -247,14 +304,14 @@ def main():
         for k, v in results.subword_stats.items():
             table.add_row(f"  {k}", f"{v:.2%}")
 
-        table.add_row("[bold]Special Case Metrics[/]", "")
-        for k, v in results.special_case_metrics.items():
-            table.add_row(f"  {k}", f"{v:.2f}")
-
         table.add_row("[bold]Token Distribution Statistics[/]", "")
         for k, v in results.token_distribution_stats.items():
-            table.add_row(f"  {k}", f"{v:.2f}")
+            if k == "entropy":
+                table.add_row(f"  {k}", f"{v:.2f}")
+            else:
+                table.add_row(f"  {k}", f"{v:.2%}")
 
+        print()
         console.print(table)
 
     if args.write_file:
@@ -278,7 +335,6 @@ def main():
                 "avg_tokens_per_char": result.avg_tokens_per_char,
                 "oov_rate": result.oov_rate,
                 "subword_stats": result.subword_stats,
-                "special_case_metrics": result.special_case_metrics,
                 "token_distribution_stats": result.token_distribution_stats,
             }
 
