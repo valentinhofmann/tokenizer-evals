@@ -97,10 +97,8 @@ class TokenizerEvaluator:
 
     def _calculate_oov_rate(self, tokenized_texts: List[List[int]]) -> float:
         """Calculate OOV rate using unknown token ID"""
-        # Get the actual unknown token ID for this tokenizer
         unk_token_id = None
 
-        # Try the standard attribute first
         if (
             hasattr(self.tokenizer, "unk_token")
             and self.tokenizer.unk_token is not None
@@ -145,16 +143,14 @@ class TokenizerEvaluator:
         token_strings = []
         for seq in tokenized_texts:
             for token_id in seq:
-                # Use convert_ids_to_tokens which handles the conversion properly
                 try:
                     token_strings.append(self.tokenizer.convert_ids_to_tokens(token_id))
                 except (AttributeError, TypeError):
-                    # Fallback to decoding as a single token
                     token_strings.append(self.tokenizer.decode([token_id]))
 
         subword_counts = Counter()
         total_tokens = len(token_strings)
-        # Common subword markers in different tokenizers
+
         bert_prefix = "##"
         sentencepiece_prefix = "▁"  # Often at the beginning of words
         byte_level_prefix = "Ġ"  # Used in GPT-2, RoBERTa
@@ -204,7 +200,6 @@ class TokenizerEvaluator:
         self, tokenized_texts: List[List[int]]
     ) -> Dict[str, float]:
         """Analyze token distribution statistics"""
-        all_tokens = sum(len(seq) for seq in tokenized_texts)
         token_counts = Counter()
 
         for seq in tokenized_texts:
@@ -216,7 +211,7 @@ class TokenizerEvaluator:
         entropy = -sum(p * math.log2(p) for p in probs if p > 0)
 
         return {
-            "unique_token_ratio": len(token_counts) / all_tokens,
+            "unique_token_ratio": len(token_counts) / total_tokens,
             "entropy": entropy,
             "top_10_token_ratio": sum(
                 count for _, count in token_counts.most_common(10)
