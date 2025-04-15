@@ -6,8 +6,6 @@ import argparse
 def upload_tokenizer_to_hub(
     local_tokenizer_path, repository_owner, repository_name, tokenizer_name=None
 ):
-    login()
-
     # Load the tokenizer from local directory
     print(f"Loading tokenizer from: {local_tokenizer_path}")
     tokenizer = AutoTokenizer.from_pretrained(local_tokenizer_path)
