@@ -103,6 +103,12 @@ def main():
             print(
                 f"Loaded {len(custom_tokens)} custom tokens from {args.custom_tokens_file}"
             )
+            print("Custom tokens:")
+            for key, value in custom_tokens.items():
+                if isinstance(value, list):
+                    print(f"  {key}: {', '.join(repr(token) for token in value)}")
+                else:
+                    print(f"  {key}: {repr(value)}")
         except Exception as e:
             print(f"Error loading custom tokens file: {e}")
             return
