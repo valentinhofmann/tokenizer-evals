@@ -56,7 +56,11 @@ CUSTOM_SELECT = {
     "non-english": {
         "flores200": lambda df: df.assign(
             text=df.filter(regex="^sentence_")
-            .sample(n=min(5, len(df.filter(regex="^sentence_").columns)), axis=1)
+            .sample(
+                n=min(5, len(df.filter(regex="^sentence_").columns)),
+                random_state=SEED,
+                axis=1,
+            )
             .apply(lambda x: "\n".join(x), axis=1)
         )
     },
