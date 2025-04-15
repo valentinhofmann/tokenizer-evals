@@ -25,7 +25,7 @@ def upload_tokenizer_to_hub(
     print(f"Successfully uploaded tokenizer to: {repo_id} (private repository)")
 
 
-if __name__ == "__main__":
+def main():
     parser = argparse.ArgumentParser(
         description="Upload a tokenizer to Hugging Face Hub"
     )
@@ -39,3 +39,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     upload_tokenizer_to_hub(args.path, args.owner, args.repo, args.name)
+
+
+if __name__ == "__main__":
+    main()
