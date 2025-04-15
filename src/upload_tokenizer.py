@@ -21,16 +21,10 @@ def upload_tokenizer_to_hub(
         # Convert all tokens to AddedToken objects except for 'additional_special_tokens'
         special_tokens_dict = {}
         for key, value in custom_tokens.items():
-            if key == "additional_special_tokens":
+            if key == "additional_special_tokens" and isinstance(value, list):
                 special_tokens_dict[key] = value
-            elif isinstance(value, str):
-                special_tokens_dict[key] = AddedToken(value, special=True)
-            elif isinstance(value, list):
-                special_tokens_dict[key] = [
-                    AddedToken(token, special=True) for token in value
-                ]
             else:
-                special_tokens_dict[key] = value
+                special_tokens_dict[key] = AddedToken(value, special=True)
 
         num_added = tokenizer.add_special_tokens(special_tokens_dict)
         print(f"Added {num_added} custom tokens: {custom_tokens}")
