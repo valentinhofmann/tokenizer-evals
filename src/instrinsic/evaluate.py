@@ -215,7 +215,6 @@ class TokenizerEvaluator:
         for seq in tokenized_texts:
             token_counts.update(seq)
 
-        # Add all token IDs in the vocabulary with a count of 0 if not already in token_counts
         for token_id in range(self.vocab_size):
             if token_id not in token_counts:
                 token_counts[token_id] = 0
@@ -225,9 +224,9 @@ class TokenizerEvaluator:
             [count / total_tokens for count in token_counts.values()]
         )
 
-        shannon_entropy = -np.sum(
-            token_probs * np.log2(token_probs, where=token_probs > 0)
-        )
+        # For shannon we filter out zero probabilities to avoid log2(0)
+        nonzero_probs = token_probs[token_probs > 0]
+        shannon_entropy = -np.sum(nonzero_probs * np.log2(nonzero_probs))
         alpha = 2.5
         renyi_entropy = (
             1 / (1 - alpha) * np.log2(np.sum(np.array(token_probs) ** alpha))
