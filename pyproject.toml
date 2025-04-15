@@ -20,4 +20,4 @@ packages = ["src"]
 eval-fertility = "src.analyze_tokenizer:main"
 eval-extras = "src.instrinsic.evaluate:main"
 eval-compare = "src.instrinsic.compare:main"
-upload-tokenizer = "src.upload:main"
+upload-tokenizer = "src.upload_tokenizer:main"
