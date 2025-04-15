@@ -215,6 +215,11 @@ class TokenizerEvaluator:
         for seq in tokenized_texts:
             token_counts.update(seq)
 
+        # Add all token IDs in the vocabulary with a count of 0 if not already in token_counts
+        for token_id in range(self.vocab_size):
+            if token_id not in token_counts:
+                token_counts[token_id] = 0
+
         total_tokens = sum(token_counts.values())
         token_probs = np.array(
             [count / total_tokens for count in token_counts.values()]
