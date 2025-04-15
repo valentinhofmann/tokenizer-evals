@@ -5,6 +5,8 @@ import json
 from huggingface_hub import HfApi, login
 from transformers import AutoTokenizer, AddedToken
 
+DEFAULT_CHAT_TEMPLATE = "{% for message in messages %}{{'<|im_start|>' + message['role'] + '\n' + message['content'] + '<|im_end|>' + '\n'}}{% endfor %}{% if add_generation_prompt %}{{ '<|im_start|>assistant\n' }}{% endif %}"
+
 
 def upload_tokenizer_to_hub(
     local_tokenizer_path,
@@ -24,7 +26,7 @@ def upload_tokenizer_to_hub(
             if key == "additional_special_tokens":
                 special_tokens_dict[key] = value
             else:
-                special_tokens_dict[key] = AddedToken(value, special=True)
+                special_tokens_dict[key] = AddedToken(**value, special=True)
 
         num_added = tokenizer.add_special_tokens(special_tokens_dict)
         print(f"Added {num_added} custom tokens: {custom_tokens}")
@@ -38,6 +40,10 @@ def upload_tokenizer_to_hub(
     # Set model max length
     tokenizer.model_max_length = max_length
     print(f"Set model max length to: {max_length}")
+
+    # Set chat template
+    tokenizer.chat_template = DEFAULT_CHAT_TEMPLATE
+    print("Set default chat template")
 
     # Create repository ID
     repo_id = f"{repository_owner}/{repository_name}"
