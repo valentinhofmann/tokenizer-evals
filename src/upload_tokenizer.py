@@ -21,7 +21,7 @@ def upload_tokenizer_to_hub(
         # Convert all tokens to AddedToken objects except for 'additional_special_tokens'
         special_tokens_dict = {}
         for key, value in custom_tokens.items():
-            if key == "additional_special_tokens" and isinstance(value, list):
+            if key == "additional_special_tokens":
                 special_tokens_dict[key] = value
             else:
                 special_tokens_dict[key] = AddedToken(value, special=True)
