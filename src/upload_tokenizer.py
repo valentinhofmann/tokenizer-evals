@@ -99,7 +99,7 @@ def main():
     if args.custom_tokens_file:
         try:
             with open(args.custom_tokens_file, "r") as f:
-                custom_tokens = json.load(f)
+                custom_tokens = json.loads(f)
             print(
                 f"Loaded {len(custom_tokens)} custom tokens from {args.custom_tokens_file}"
             )
