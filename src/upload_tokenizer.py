@@ -14,14 +14,11 @@ def upload_tokenizer_to_hub(
     custom_tokens=None,
     max_length=8192,
 ):
-    # Load the tokenizer from local directory
     print(f"Loading tokenizer from: {local_tokenizer_path}")
     tokenizer = AutoTokenizer.from_pretrained(local_tokenizer_path)
 
-    # Add custom tokens if provided
     if custom_tokens and len(custom_tokens) > 0:
-        # Add additional special tokens
-        special_tokens_dict = {"added_special_tokens": custom_tokens}
+        special_tokens_dict = custom_tokens
         num_added = tokenizer.add_special_tokens(special_tokens_dict)
         print(f"Added {num_added} custom tokens: {custom_tokens}")
 
