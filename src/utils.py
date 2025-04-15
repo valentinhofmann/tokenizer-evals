@@ -1,39 +1,44 @@
 import json
+import logging
 
 from datasets import load_dataset
+
+logger = logging.getLogger(__name__)
 
 SEED = 123
 CHAT_DATASETS = {"wildchat", "chatbot_arena"}
 CODE_DATASETS = {"mbpp", "human_eval"}
-CORE_DATASETS = {"mmlu", "arc_challenge", "gsm8k"}
-
+CORE_DATASETS = {"mmlu", "arc_challenge", "gsm8k", "flores200"}
 
 DATSET_TO_SPLIT = {
-    "wildchat": "train",
-    "chatbot_arena": "train",
-    "mbpp": "test",
-    "human_eval": "test",
-    "mmlu": "auxiliary_train",
     "arc_challenge": "train",
+    "chatbot_arena": "train",
+    "flores200": "dev",
     "gsm8k": "train",
+    "human_eval": "test",
+    "mbpp": "test",
+    "mmlu": "auxiliary_train",
+    "wildchat": "train",
 }
 
 DATSET_TO_SUBSET = {
-    "mmlu": "all",
-    "gsm8k": "main",
     "arc_challenge": "ARC-Challenge",
+    "gsm8k": "main",
+    "mmlu": "all",
+    "flores200": "all",
 }
 
 ALL_DATASETS = CHAT_DATASETS | CODE_DATASETS | CORE_DATASETS
 
 FULL_NAMES = {
-    "mbpp": "Muennighoff/mbpp",
-    "human_eval": "openai/openai_humaneval",
-    "wildchat": "allenai/WildChat",
-    "chatbot_arena": "lmsys/chatbot_arena_conversations",
-    "mmlu": "cais/mmlu",
     "arc_challenge": "allenai/ai2_arc",
+    "chatbot_arena": "lmsys/chatbot_arena_conversations",
+    "flores200": "facebook/flores",
     "gsm8k": "openai/gsm8k",
+    "human_eval": "openai/openai_humaneval",
+    "mbpp": "Muennighoff/mbpp",
+    "mmlu": "cais/mmlu",
+    "wildchat": "allenai/WildChat",
 }
 
 CODE_COLUMNS = {
@@ -45,6 +50,17 @@ CORE_COLUMNS = {
     "mmlu": ["question"],
     "arc_challenge": ["question"],
     "gsm8k": ["question"],
+}
+
+CUSTOM_SELECT = {
+    "non-english": {
+        "flores200": lambda df: df.assign(
+            text=df.filter(regex="^sentence_")
+            .sample(n=min(5, len(df.filter(regex="^sentence_").columns)), axis=1)
+            .apply(lambda x: "\n".join(x), axis=1)
+        )
+    },
+    "english-only": {},
 }
 
 CONVERSATION_COLS = {"wildchat": "conversation", "chatbot_arena": "conversation_a"}
@@ -61,7 +77,7 @@ def load_data(dataset_name, n_samples=1000, english_only=True):
         raise NotImplementedError(f"Dataset '{dataset_name}' is not supported yet.")
 
 
-def load_core_data(dataset_name, n_samples=1000):
+def load_core_data(dataset_name, n_samples=1000, english_only=False):
     core_data = load_dataset(
         FULL_NAMES[dataset_name],
         DATSET_TO_SUBSET[dataset_name],
@@ -74,19 +90,42 @@ def load_core_data(dataset_name, n_samples=1000):
         .to_pandas()
     )
 
-    core_data_sample["text"] = core_data_sample.apply(
-        lambda x: "\n".join(
-            [
-                " ".join(x[col]) if col == "choices" else "".join(x[col])
-                for col in CORE_COLUMNS[dataset_name]
-            ]
-        ),
-        axis=1,
+    logger.info(
+        f"Loaded {len(core_data_sample)} samples from {dataset_name} dataset..."
     )
 
-    core_data_sample = core_data_sample[core_data_sample["text"].str.strip() != ""]
+    custom_select = CUSTOM_SELECT.get(
+        "non-english" if not english_only else "english-only", {}
+    )
 
-    return core_data_sample.sample(min(n_samples, len(core_data)), random_state=SEED)
+    if dataset_name in custom_select:
+        # Apply custom selection logic for specific datasets,
+        # but because these datasets can be large we
+        # sample first and then apply the custom selection
+        # to avoid loading the entire dataset into memory.
+        core_data_sample = custom_select[dataset_name](
+            core_data_sample.sample(
+                min(n_samples, len(core_data_sample)), random_state=SEED
+            )
+        )
+
+    else:
+        core_data_sample["text"] = core_data_sample.apply(
+            lambda x: "\n".join(
+                [
+                    " ".join(x[col]) if col == "choices" else "".join(x[col])
+                    for col in CORE_COLUMNS[dataset_name]
+                ]
+            ),
+            axis=1,
+        )
+
+    core_data_sample = core_data_sample[core_data_sample["text"].str.strip() != ""]
+    print_examples(core_data_sample, dataset_name)
+
+    return core_data_sample.sample(
+        min(n_samples, len(core_data_sample)), random_state=SEED
+    )
 
 
 def load_code_data(dataset_name, n_samples=1000):
@@ -101,11 +140,15 @@ def load_code_data(dataset_name, n_samples=1000):
     )
 
     code_data_sample["text"] = code_data_sample.apply(
-        lambda x: "\n".join([x[col] for col in CODE_COLUMNS[dataset_name]]),
+        lambda x: "\n\n".join([x[col] for col in CODE_COLUMNS[dataset_name]]),
         axis=1,
     )
 
     code_data_sample = code_data_sample[code_data_sample["text"].str.strip() != ""]
+    logger.info(
+        f"Loaded {len(code_data_sample)} samples from {dataset_name} dataset..."
+    )
+    print_examples(code_data_sample, dataset_name)
 
     return code_data_sample.sample(min(n_samples, len(code_data)), random_state=SEED)
 
@@ -135,6 +178,10 @@ def load_chat_data(dataset_name, n_samples=1000, english_only=True):
         ]
 
     # Final sampling
+    logger.info(
+        f"Loaded {len(chat_data_sample)} samples from {dataset_name} dataset..."
+    )
+    print_examples(chat_data_sample, dataset_name)
     return chat_data_sample.sample(n_samples, random_state=SEED)
 
 
@@ -153,6 +200,13 @@ def compute_metrics(data, tokenizer, text_col="text"):
         lambda r: r["n_tokens"] / r["n_words"] if r["n_words"] > 0 else 0, axis=1
     )
     return data
+
+
+def print_examples(data, dataset_name, n=5):
+    logger.info(f"Example instances from {dataset_name}...")
+
+    for text in data["text"].sample(n).to_list():
+        logger.info(f"\n{text}\n")
 
 
 def write_json(name, results, metric, tokenizer, output_dir=".output"):
