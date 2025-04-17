@@ -129,25 +129,25 @@ def upload_tokenizer_to_hub(
             commit_message=f"{commit_message}",
         )
 
-    # Upload all files from the tokenizer directory
-    api = HfApi()
-    print(f"Uploading all remaining files from {local_tokenizer_path} to {repo_id}...")
+    # # Upload all files from the tokenizer directory
+    # api = HfApi()
+    # print(f"Uploading all remaining files from {local_tokenizer_path} to {repo_id}...")
 
-    # Walk through all files in the directory
-    for root, _, files in os.walk(local_tokenizer_path):
-        for file in files:
-            file_path = os.path.join(root, file)
-            rel_path = os.path.relpath(file_path, local_tokenizer_path)
+    # # Walk through all files in the directory
+    # for root, _, files in os.walk(local_tokenizer_path):
+    #     for file in files:
+    #         file_path = os.path.join(root, file)
+    #         rel_path = os.path.relpath(file_path, local_tokenizer_path)
 
-            # Upload the file
-            api.upload_file(
-                path_or_fileobj=file_path,
-                path_in_repo=rel_path,
-                repo_id=repo_id,
-                repo_type="model",
-                commit_message=f"Upload {rel_path}",
-            )
-            print(f"Uploaded {rel_path}")
+    #         # Upload the file
+    #         api.upload_file(
+    #             path_or_fileobj=file_path,
+    #             path_in_repo=rel_path,
+    #             repo_id=repo_id,
+    #             repo_type="model",
+    #             commit_message=f"Upload {rel_path}",
+    #         )
+    #         print(f"Uploaded {rel_path}")
 
     print(f"Successfully uploaded tokenizer to: {repo_id} (private repository)")
 
