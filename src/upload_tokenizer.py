@@ -108,9 +108,6 @@ def upload_tokenizer_to_hub(
         print(f"\nLast 10 items in tokenizer vocabulary:")
         for token, id in items[-10:]:
             print(f"  '{token}': {id}")
-        print(
-            f"Saved tokenizer temporarily to {tmp_dir} to ensure changes are serialized"
-        )
 
         print(f"Tokenizer vocabulary size: {len(tokenizer)}")
         print(f"Tokenizer model max length: {tokenizer.model_max_length}")
@@ -132,6 +129,47 @@ def upload_tokenizer_to_hub(
         print(
             f"vocab.json location: {os.path.abspath(vocab_path) if os.path.exists(vocab_path) else 'Not found'}"
         )
+
+        # Update vocab.json with added tokens if it exists
+        if os.path.exists(vocab_path):
+            try:
+                print("Updating vocab.json with added tokens...")
+                with open(vocab_path, "r") as f:
+                    vocab_dict = json.load(f)
+
+                # Load tokenizer_config.json if it exists
+                tokenizer_config_path = os.path.join(tmp_dir, "tokenizer_config.json")
+                added_tokens = {}
+
+                if os.path.exists(tokenizer_config_path):
+                    with open(tokenizer_config_path, "r") as f:
+                        tokenizer_config = json.load(f)
+
+                        # Extract tokens from added_tokens_decoder
+                        if "added_tokens_decoder" in tokenizer_config:
+                            for token_id, token_data in tokenizer_config[
+                                "added_tokens_decoder"
+                            ].items():
+                                token_content = token_data["content"]
+                                # Use the actual ID from the config
+                                added_tokens[token_content] = int(token_id)
+                                print(
+                                    f"  Found token '{token_content}' with ID {token_id} in tokenizer_config.json"
+                                )
+
+                # Update vocab.json with the tokens
+                for token, token_id in added_tokens.items():
+                    if token not in vocab_dict:
+                        print(f"  Adding '{token}' with ID {token_id} to vocab.json")
+                        vocab_dict[token] = token_id
+
+                    # Write the updated vocabulary back to vocab.json
+                    with open(vocab_path, "w") as f:
+                        json.dump(vocab_dict, f, ensure_ascii=False)
+
+                    print(f"Updated vocab.json with {len(added_tokens)} tokens")
+            except Exception as e:
+                print(f"Error updating vocab.json: {e}")
 
         api = HfApi()
 
