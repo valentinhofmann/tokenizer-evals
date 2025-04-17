@@ -93,7 +93,6 @@ def upload_tokenizer_to_hub(
     # Create repository ID
     repo_id = f"{repository_owner}/{repository_name}"
 
-    # Save the tokenizer locally first to ensure all changes are serialized
     import tempfile
 
     with tempfile.TemporaryDirectory() as tmp_dir:
@@ -101,6 +100,20 @@ def upload_tokenizer_to_hub(
         print(
             f"Saved tokenizer temporarily to {tmp_dir} to ensure changes are serialized"
         )
+
+        # Print the end of the vocab.json file to verify its content
+        vocab_file_path = os.path.join(tmp_dir, "vocab.json")
+        if os.path.exists(vocab_file_path):
+            with open(vocab_file_path, "r") as f:
+                vocab_json = json.load(f)
+            print(f"\nVocabulary file contains {len(vocab_json)} tokens")
+            # Get the last 10 items when sorted by token ID (value)
+            sorted_items = sorted(vocab_json.items(), key=lambda x: x[1])[-10:]
+            print("Last 10 entries in vocab.json:")
+            for token, idx in sorted_items:
+                print(f"  {idx}: {repr(token)}")
+        else:
+            print(f"No vocab.json found at {vocab_file_path}")
 
         print(f"Tokenizer vocabulary size: {len(tokenizer)}")
         print(f"Tokenizer model max length: {tokenizer.model_max_length}")
