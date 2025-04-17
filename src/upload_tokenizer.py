@@ -117,6 +117,26 @@ def upload_tokenizer_to_hub(
         print(f"Tokenizer repo ID: {repo_id}")
         print(f"Commit message: {commit_message}")
 
+        # Print paths for important tokenizer files
+        tokenizer_json_path = os.path.join(tmp_dir, "tokenizer.json")
+        vocab_json_path = os.path.join(tmp_dir, "vocab.json")
+        print(
+            f"tokenizer.json location: {os.path.abspath(tokenizer_json_path) if os.path.exists(tokenizer_json_path) else 'Not found'}"
+        )
+        print(
+            f"vocab.json location: {os.path.abspath(vocab_json_path) if os.path.exists(vocab_json_path) else 'Not found'}"
+        )
+
+        # Create HfApi instance for potential file operations
+        # api = HfApi()
+        # api.upload_file(
+        #      path_or_fileobj=file_path,
+        #      path_in_repo=rel_path,
+        #      repo_id=repo_id,
+        #      repo_type="model",
+        #      commit_message=f"Upload {rel_path}",
+        #  )
+
         tokenizer.push_to_hub(
             use_temp_dir=True,
             repo_id=repo_id,
