@@ -33,25 +33,39 @@ def upload_tokenizer_to_hub(
                     )
                     continue
             else:
-                # For individual special tokens like bos_token, eos_token, etc.
                 if isinstance(value, dict):
                     # If it's a dictionary of parameters, create an AddedToken
                     special_tokens_dict[key] = AddedToken(**value)
                 else:
                     # If it's just a string
-                    special_tokens_dict[key] = value
+                    raise ValueError(
+                        f"Invalid value for {key}: expected a dict for AddedToken, got {type(value)}"
+                    )
 
-        # Add special tokens
-        num_added = tokenizer.add_special_tokens(special_tokens_dict)
-        print(f"Added {num_added} custom tokens: {special_tokens_dict}")
+        num_added = 0
+        if "additional_special_tokens" in special_tokens_dict:
+            # Add these as regular tokens
+            tokens_to_add = special_tokens_dict.pop("additional_special_tokens")
+            num_added += tokenizer.add_tokens(tokens_to_add)
+            print(f"Added {len(tokens_to_add)} regular tokens")
+
+        # Add any remaining tokens that were specified individually
+        for key, token in special_tokens_dict.items():
+            if isinstance(token, AddedToken):
+                num_added += tokenizer.add_tokens(token)
 
         # Verify tokens were added
-        print("Verifying special tokens:")
+        print("Verifying added tokens:")
         for key, value in special_tokens_dict.items():
-            if key == "additional_special_tokens":
-                print(f"  {key}: {tokenizer.additional_special_tokens}")
-            elif hasattr(tokenizer, key):
+            if hasattr(tokenizer, key):
                 print(f"  {key}: {getattr(tokenizer, key)}")
+
+        # Print additional special tokens separately if they were added
+        if "additional_special_tokens" in custom_tokens:
+            print(f"  additional_special_tokens: {tokenizer.additional_special_tokens}")
+
+        # Verify vocabulary size
+        print(f"Vocabulary size: {len(tokenizer)}")
 
     # Set model max length
     tokenizer.model_max_length = max_length
