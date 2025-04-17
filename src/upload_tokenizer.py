@@ -25,6 +25,7 @@ def upload_tokenizer_to_hub(
 
     if custom_tokens and len(custom_tokens) > 0:
         # Convert tokens to proper format
+        size_before_added = len(tokenizer)
         added_tokens_dict = {}
         for key, value in custom_tokens.items():
             if key == "additional_special_tokens":
@@ -71,12 +72,12 @@ def upload_tokenizer_to_hub(
             if hasattr(tokenizer, key):
                 print(f"  {key}: {getattr(tokenizer, key)}")
 
-        # Print additional special tokens separately if they were added
-        if "additional_special_tokens" in custom_tokens:
-            print(f"  additional_special_tokens: {tokenizer.additional_special_tokens}")
+        # You have to call this as well if you want them in your vocab
+        tokenizer.add_special_tokens(added_tokens_dict)
 
-        # Verify vocabulary size
-        print(f"Vocabulary size: {len(tokenizer)}")
+        print(
+            f"Added {num_added} tokens to the tokenizer (before: {size_before_added}, after: {len(tokenizer)})"
+        )
 
     # Set model max length
     tokenizer.model_max_length = max_length
