@@ -75,6 +75,16 @@ def upload_tokenizer_to_hub(
             f"Saved tokenizer temporarily to {tmp_dir} to ensure changes are serialized"
         )
 
+        # Print the tokenizer_config.json contents
+        tokenizer_config_path = os.path.join(tmp_dir, "tokenizer_config.json")
+        if os.path.exists(tokenizer_config_path):
+            with open(tokenizer_config_path, "r") as f:
+                tokenizer_config = json.load(f)
+            print("tokenizer_config.json content:")
+            print(json.dumps(tokenizer_config, indent=2))
+        else:
+            print("tokenizer_config.json not found in the temporary directory")
+
         # Now push from the temporary directory
         tokenizer.push_to_hub(
             repo_id=repo_id,
