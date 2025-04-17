@@ -22,7 +22,7 @@ def upload_tokenizer_to_hub(
     commit_message=None,
     custom_tokens=None,
     max_length=8192,
-    tokenizer_class="GPT2Tokenizer",
+    tokenizer_class="gpt2",
 ):
     print(f"Loading tokenizer from: {local_tokenizer_path}")
     tokenizer = AutoTokenizer.from_pretrained(
@@ -85,18 +85,20 @@ def upload_tokenizer_to_hub(
     tokenizer.chat_template = DEFAULT_CHAT_TEMPLATE
     print("Set default chat template")
 
-    # Set decoder configuration
+    # Set decoder configuration in tokenizer_config instead of directly setting the decoder
     decoder_config = {
         "type": "ByteLevel",
         "add_prefix_space": True,
         "trim_offsets": True,
         "use_regex": True,
     }
-    tokenizer.decoder = decoder_config
-    print("Set ByteLevel decoder configuration")
+    print("Setting ByteLevel decoder configuration...")
+    # Add to tokenizer_config which will be saved with the tokenizer
+    if not hasattr(tokenizer, "tokenizer_config"):
+        tokenizer.tokenizer_config = {}
 
-    tokenizer.tokenizer_class = tokenizer_class
-    print(f"Set tokenizer class to {tokenizer_class}")
+    tokenizer.tokenizer_config["decoder"] = decoder_config
+    print("Added ByteLevel decoder configuration to tokenizer_config")
 
     # Create repository ID
     repo_id = f"{repository_owner}/{repository_name}"
