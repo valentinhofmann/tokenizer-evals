@@ -26,9 +26,7 @@ def upload_tokenizer_to_hub(
             if key == "additional_special_tokens":
                 # For lists of additional special tokens
                 if isinstance(value, list):
-                    special_tokens_dict[key] = (
-                        value  # Keep as strings, not AddedToken objects
-                    )
+                    special_tokens_dict[key] = AddedToken(value, special=False)
                 else:
                     print(
                         f"Warning: 'additional_special_tokens' should be a list, got {type(value)}"
@@ -38,7 +36,7 @@ def upload_tokenizer_to_hub(
                 # For individual special tokens like bos_token, eos_token, etc.
                 if isinstance(value, dict):
                     # If it's a dictionary of parameters, create an AddedToken
-                    special_tokens_dict[key] = value.get("content", "")
+                    special_tokens_dict[key] = AddedToken(**value)
                 else:
                     # If it's just a string
                     special_tokens_dict[key] = value
