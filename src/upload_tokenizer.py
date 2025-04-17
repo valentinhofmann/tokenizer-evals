@@ -8,43 +8,6 @@ from transformers import AutoTokenizer, AddedToken
 DEFAULT_CHAT_TEMPLATE = "{% for message in messages %}{{'<|im_start|>' + message['role'] + '\n' + message['content'] + '<|im_end|>' + '\n'}}{% endfor %}{% if add_generation_prompt %}{{ '<|im_start|>assistant\n' }}{% endif %}"
 
 
-def add_pretokenization_split(tokenizer):
-    """
-    Adds the pretokenization split pattern to the tokenizer configuration.
-    """
-    # Get the current tokenizer config
-    config = tokenizer.pretrained_init_configuration
-
-    # Add or update the pretokenization split pattern
-    pretokenization_split = {
-        "type": "Split",
-        "pattern": {
-            "Regex": "(?i:'s|'t|'re|'ve|'m|'ll|'d)|[^\\r\\n\\p{L}\\p{N}]?\\p{L}+|\\p{N}{1,3}| ?[^\\s\\p{L}\\p{N}]+[\\r\\n]*|\\s*[\\r\\n]+|\\s+(?!\\S)|\\s+"
-        },
-        "behavior": "Removed",
-        "invert": True,
-    }
-
-    # Update the config to include the pretokenization split
-    if "pretokenizer" not in config:
-        config["pretokenizer"] = {
-            "type": "Sequence",
-            "pretokenizers": [pretokenization_split],
-        }
-    elif config["pretokenizer"]["type"] == "Sequence":
-        config["pretokenizer"]["pretokenizers"].append(pretokenization_split)
-    else:
-        # If there's an existing non-sequence pretokenizer, wrap it in a sequence
-        existing = config["pretokenizer"]
-        config["pretokenizer"] = {
-            "type": "Sequence",
-            "pretokenizers": [existing, pretokenization_split],
-        }
-
-    print("Added pretokenization split pattern to tokenizer configuration")
-    return config
-
-
 def upload_tokenizer_to_hub(
     local_tokenizer_path,
     repository_owner,
@@ -52,7 +15,6 @@ def upload_tokenizer_to_hub(
     commit_message=None,
     custom_tokens=None,
     max_length=8192,
-    pretokenization_split=True,
 ):
     print(f"Loading tokenizer from: {local_tokenizer_path}")
     tokenizer = AutoTokenizer.from_pretrained(local_tokenizer_path)
@@ -91,10 +53,6 @@ def upload_tokenizer_to_hub(
     # Set chat template
     tokenizer.chat_template = DEFAULT_CHAT_TEMPLATE
     print("Set default chat template")
-
-    if pretokenization_split:
-        # Add pretokenization split pattern
-        tokenizer.pretrained_init_configuration = add_pretokenization_split(tokenizer)
 
     # Create repository ID
     repo_id = f"{repository_owner}/{repository_name}"
