@@ -25,7 +25,7 @@ def upload_tokenizer_to_hub(
 
     if custom_tokens and len(custom_tokens) > 0:
         # Convert tokens to proper format
-        size_before_added = len(tokenizer)
+        size_before_added = len(tokenizer.get_vocab())
         added_tokens_dict = {}
         for key, value in custom_tokens.items():
             if key == "additional_special_tokens":
@@ -67,10 +67,6 @@ def upload_tokenizer_to_hub(
         for key, token in added_tokens_dict.items():
             if isinstance(token, AddedToken):
                 num_added += tokenizer.add_tokens(token)
-
-        for key, value in added_tokens_dict.items():
-            if hasattr(tokenizer, key):
-                print(f"  {key}: {getattr(tokenizer, key)}")
 
         # You have to call this as well if you want them in your vocab
         tokenizer.add_special_tokens(added_tokens_dict)
@@ -116,6 +112,14 @@ def upload_tokenizer_to_hub(
         print(f"Tokenizer added tokens: {tokenizer.added_tokens_encoder}")
         print(f"Tokenizer repo ID: {repo_id}")
         print(f"Commit message: {commit_message}")
+
+        # Print the last 10 tokens of the vocabulary
+        vocab = tokenizer.get_vocab()
+        sorted_vocab = sorted(vocab.items(), key=lambda x: x[1])
+        last_ten_tokens = sorted_vocab[-10:]
+        print("\nLast 10 tokens in vocabulary:")
+        for token, idx in last_ten_tokens:
+            print(f"  {idx}: {repr(token)}")
 
         tokenizer.push_to_hub(
             repo_id=repo_id,
