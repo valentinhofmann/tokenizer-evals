@@ -35,7 +35,7 @@ def upload_tokenizer_to_hub(
                     )
                     continue
             else:
-                special_tokens_dict[key] = AddedToken(**value, special=False)
+                special_tokens_dict[key] = AddedToken(**value)
 
         num_added = tokenizer.add_special_tokens(special_tokens_dict)
         print(f"Added {num_added} custom tokens: {custom_tokens}")
