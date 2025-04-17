@@ -92,11 +92,6 @@ def upload_tokenizer_to_hub(
         "trim_offsets": True,
         "use_regex": True,
     }
-    print("Setting ByteLevel decoder configuration...")
-    # Add to tokenizer_config which will be saved with the tokenizer
-    if not hasattr(tokenizer, "tokenizer_config"):
-        tokenizer.tokenizer_config = {}
-
     tokenizer.tokenizer_config["decoder"] = decoder_config
     print("Added ByteLevel decoder configuration to tokenizer_config")
 
