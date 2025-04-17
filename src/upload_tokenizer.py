@@ -235,12 +235,12 @@ def upload_tokenizer_to_hub(
                 commit_message=f"{commit_message}",
             )
 
-        tokenizer.push_to_hub(
-            use_temp_dir=True,
-            repo_id=repo_id,
-            private=True,
-            commit_message=f"{commit_message}",
-        )
+        # tokenizer.push_to_hub(
+        #     use_temp_dir=True,
+        #     repo_id=repo_id,
+        #     private=True,
+        #     commit_message=f"{commit_message}",
+        # )
 
     # # Upload all files from the tokenizer directory
     # api = HfApi()
