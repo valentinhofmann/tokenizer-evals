@@ -32,7 +32,7 @@ def upload_tokenizer_to_hub(
 
     if custom_tokens and len(custom_tokens) > 0:
         # Convert tokens to proper format
-        special_tokens_dict = {}
+        added_tokens_dict = {}
         for key, value in custom_tokens.items():
             if key == "additional_special_tokens":
                 # For lists of additional special tokens
@@ -40,14 +40,14 @@ def upload_tokenizer_to_hub(
                     for token in value:
                         if isinstance(token, str):
                             # If it's a string, create an AddedToken
-                            special_tokens_dict.setdefault(
+                            added_tokens_dict.setdefault(
                                 "additional_special_tokens", []
                             ).append(AddedToken(token, lstrip=True, rstrip=True))
                         else:
                             print(
                                 f"Warning: Invalid token type {type(token)} in 'additional_special_tokens'"
                             )
-                    special_tokens_dict[key] = value
+                    added_tokens_dict[key] = value
                 else:
                     print(
                         f"Warning: 'additional_special_tokens' should be a list, got {type(value)}"
@@ -56,7 +56,7 @@ def upload_tokenizer_to_hub(
             else:
                 if isinstance(value, dict):
                     # If it's a dictionary of parameters, create an AddedToken
-                    special_tokens_dict[key] = AddedToken(**value)
+                    added_tokens_dict[key] = AddedToken(**value)
                 else:
                     # If it's just a string
                     raise ValueError(
@@ -64,20 +64,17 @@ def upload_tokenizer_to_hub(
                     )
 
         num_added = 0
-        if "additional_special_tokens" in special_tokens_dict:
+        if "additional_special_tokens" in added_tokens_dict:
             # Add these as regular tokens
-            tokens_to_add = special_tokens_dict.pop("additional_special_tokens")
+            tokens_to_add = added_tokens_dict.pop("additional_special_tokens")
             num_added += tokenizer.add_tokens(tokens_to_add)
-            print(f"Added {len(tokens_to_add)} regular tokens")
 
         # Add any remaining tokens that were specified individually
-        for key, token in special_tokens_dict.items():
+        for key, token in added_tokens_dict.items():
             if isinstance(token, AddedToken):
                 num_added += tokenizer.add_tokens(token)
 
-        # Verify tokens were added
-        print("Verifying added tokens:")
-        for key, value in special_tokens_dict.items():
+        for key, value in added_tokens_dict.items():
             if hasattr(tokenizer, key):
                 print(f"  {key}: {getattr(tokenizer, key)}")
 
