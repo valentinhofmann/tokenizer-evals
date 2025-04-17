@@ -9,35 +9,6 @@ from transformers import AutoTokenizer, AddedToken
 DEFAULT_CHAT_TEMPLATE = "{% for message in messages %}{{'<|im_start|>' + message['role'] + '\n' + message['content'] + '<|im_end|>' + '\n'}}{% endfor %}{% if add_generation_prompt %}{{ '<|im_start|>assistant\n' }}{% endif %}"
 
 
-def save_tokenizer(tokenizer, save_directory):
-    # Save vocab with added_tokens
-    vocab = tokenizer.get_vocab()
-    added_tokens = (
-        tokenizer.added_tokens_encoder
-        if hasattr(tokenizer, "added_tokens_encoder")
-        else {}
-    )
-    full_vocab = {**vocab, **added_tokens}
-    with open(os.path.join(save_directory, "vocab.txt"), "w", encoding="utf-8") as f:
-        for token, idx in sorted(full_vocab.items(), key=lambda x: x[1]):
-            f.write(f"{token}\n")
-
-    # Save tokenizer config with added_tokens
-    tokenizer_config = tokenizer.__dict__.copy()
-    if hasattr(tokenizer, "added_tokens_encoder"):
-        tokenizer_config["added_tokens"] = list(tokenizer.added_tokens_encoder.keys())
-    with open(
-        os.path.join(save_directory, "tokenizer_config.json"), "w", encoding="utf-8"
-    ) as f:
-        import json
-
-        json.dump(tokenizer_config, f, ensure_ascii=False, indent=2)
-
-    # Optionally, save tokenizer.json if using Hugging Face
-    if hasattr(tokenizer, "save_pretrained"):
-        tokenizer.save_pretrained(save_directory)
-
-
 def upload_tokenizer_to_hub(
     local_tokenizer_path,
     repository_owner,
@@ -129,22 +100,22 @@ def upload_tokenizer_to_hub(
     import tempfile
 
     with tempfile.TemporaryDirectory() as tmp_dir:
-        save_tokenizer(tokenizer, tmp_dir)
+        tokenizer.save_pretrained(tmp_dir)
         print(
             f"Saved tokenizer temporarily to {tmp_dir} to ensure changes are serialized"
         )
 
-        # Print the tokenizer_config.json contents
-        tokenizer_config_path = os.path.join(tmp_dir, "tokenizer_config.json")
-        if os.path.exists(tokenizer_config_path):
-            with open(tokenizer_config_path, "r") as f:
-                tokenizer_config = json.load(f)
-            print("tokenizer_config.json content:")
-            print(json.dumps(tokenizer_config, indent=2))
-        else:
-            print("tokenizer_config.json not found in the temporary directory")
+        print(f"Tokenizer vocabulary size: {len(tokenizer)}")
+        print(f"Tokenizer model max length: {tokenizer.model_max_length}")
+        print(f"Tokenizer chat template: {tokenizer.chat_template}")
+        print(f"Tokenizer backend decoder: {tokenizer.backend_tokenizer.decoder}")
+        print(
+            f"Tokenizer additional special tokens: {tokenizer.additional_special_tokens}"
+        )
+        print(f"Tokenizer added tokens: {tokenizer.added_tokens_encoder}")
+        print(f"Tokenizer repo ID: {repo_id}")
+        print(f"Commit message: {commit_message}")
 
-        # Now push from the temporary directory
         tokenizer.push_to_hub(
             repo_id=repo_id,
             private=True,
