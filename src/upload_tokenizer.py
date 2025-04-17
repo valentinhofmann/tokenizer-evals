@@ -8,12 +8,34 @@ from transformers import AutoTokenizer, AddedToken
 
 DEFAULT_CHAT_TEMPLATE = "{% for message in messages %}{{'<|im_start|>' + message['role'] + '\n' + message['content'] + '<|im_end|>' + '\n'}}{% endfor %}{% if add_generation_prompt %}{{ '<|im_start|>assistant\n' }}{% endif %}"
 
-#   "decoder": {
-#     "type": "ByteLevel",
-#     "add_prefix_space": true,
-#     "trim_offsets": true,
-#     "use_regex": true
-#   }
+
+def save_tokenizer(tokenizer, save_directory):
+    # Save vocab with added_tokens
+    vocab = tokenizer.get_vocab()
+    added_tokens = (
+        tokenizer.added_tokens_encoder
+        if hasattr(tokenizer, "added_tokens_encoder")
+        else {}
+    )
+    full_vocab = {**vocab, **added_tokens}
+    with open(os.path.join(save_directory, "vocab.txt"), "w", encoding="utf-8") as f:
+        for token, idx in sorted(full_vocab.items(), key=lambda x: x[1]):
+            f.write(f"{token}\n")
+
+    # Save tokenizer config with added_tokens
+    tokenizer_config = tokenizer.__dict__.copy()
+    if hasattr(tokenizer, "added_tokens_encoder"):
+        tokenizer_config["added_tokens"] = list(tokenizer.added_tokens_encoder.keys())
+    with open(
+        os.path.join(save_directory, "tokenizer_config.json"), "w", encoding="utf-8"
+    ) as f:
+        import json
+
+        json.dump(tokenizer_config, f, ensure_ascii=False, indent=2)
+
+    # Optionally, save tokenizer.json if using Hugging Face
+    if hasattr(tokenizer, "save_pretrained"):
+        tokenizer.save_pretrained(save_directory)
 
 
 def upload_tokenizer_to_hub(
@@ -107,7 +129,7 @@ def upload_tokenizer_to_hub(
     import tempfile
 
     with tempfile.TemporaryDirectory() as tmp_dir:
-        tokenizer.save_pretrained(tmp_dir)
+        save_tokenizer(tokenizer, tmp_dir)
         print(
             f"Saved tokenizer temporarily to {tmp_dir} to ensure changes are serialized"
         )

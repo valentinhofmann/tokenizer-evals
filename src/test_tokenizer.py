@@ -27,6 +27,12 @@ def load_and_test_tokenizer(
         print(f"Loading tokenizer {tokenizer_name}...")
         tokenizer = AutoTokenizer.from_pretrained(tokenizer_name)
 
+        print(f"Tokenizer loaded: {tokenizer_name}")
+        print(f"Tokenizer type: {type(tokenizer).__name__}")
+        print(f"Tokenizer vocab size: {tokenizer.vocab_size}")
+        print(f"Tokenizer model max length: {tokenizer.model_max_length}")
+        print(f"Tokenizer special tokens: {tokenizer.special_tokens_map}")
+
         if npy_file_path is None:
             print("No file path provided. Tokenizing sample text...")
             token_ids = tokenizer.encode(SAMPLE_TEXT, add_special_tokens=False)
