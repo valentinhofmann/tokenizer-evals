@@ -52,7 +52,7 @@ def upload_tokenizer_to_hub(
     commit_message=None,
     custom_tokens=None,
     max_length=8192,
-    add_pretokenization_split=True,
+    pretokenization_split=True,
 ):
     print(f"Loading tokenizer from: {local_tokenizer_path}")
     tokenizer = AutoTokenizer.from_pretrained(local_tokenizer_path)
@@ -92,7 +92,7 @@ def upload_tokenizer_to_hub(
     tokenizer.chat_template = DEFAULT_CHAT_TEMPLATE
     print("Set default chat template")
 
-    if add_pretokenization_split:
+    if pretokenization_split:
         # Add pretokenization split pattern
         tokenizer.pretrained_init_configuration = add_pretokenization_split(tokenizer)
 
