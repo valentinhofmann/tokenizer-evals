@@ -25,7 +25,7 @@ def upload_tokenizer_to_hub(
 
     if custom_tokens and len(custom_tokens) > 0:
         # Convert tokens to proper format
-        size_before_added = len(tokenizer.get_vocab())
+        size_before_added = len(tokenizer)
         added_tokens_dict = {}
         for key, value in custom_tokens.items():
             if key == "additional_special_tokens":
@@ -68,6 +68,10 @@ def upload_tokenizer_to_hub(
             if isinstance(token, AddedToken):
                 num_added += tokenizer.add_tokens(token)
 
+        for key, value in added_tokens_dict.items():
+            if hasattr(tokenizer, key):
+                print(f"  {key}: {getattr(tokenizer, key)}")
+
         # You have to call this as well if you want them in your vocab
         tokenizer.add_special_tokens(added_tokens_dict)
 
@@ -93,6 +97,7 @@ def upload_tokenizer_to_hub(
     # Create repository ID
     repo_id = f"{repository_owner}/{repository_name}"
 
+    # Save the tokenizer locally first to ensure all changes are serialized
     import tempfile
 
     with tempfile.TemporaryDirectory() as tmp_dir:
@@ -100,20 +105,6 @@ def upload_tokenizer_to_hub(
         print(
             f"Saved tokenizer temporarily to {tmp_dir} to ensure changes are serialized"
         )
-
-        # Print the end of the vocab.json file to verify its content
-        vocab_file_path = os.path.join(tmp_dir, "vocab.json")
-        if os.path.exists(vocab_file_path):
-            with open(vocab_file_path, "r") as f:
-                vocab_json = json.load(f)
-            print(f"\nVocabulary file contains {len(vocab_json)} tokens")
-            # Get the last 10 items when sorted by token ID (value)
-            sorted_items = sorted(vocab_json.items(), key=lambda x: x[1])[-10:]
-            print("Last 10 entries in vocab.json:")
-            for token, idx in sorted_items:
-                print(f"  {idx}: {repr(token)}")
-        else:
-            print(f"No vocab.json found at {vocab_file_path}")
 
         print(f"Tokenizer vocabulary size: {len(tokenizer)}")
         print(f"Tokenizer model max length: {tokenizer.model_max_length}")
@@ -125,14 +116,6 @@ def upload_tokenizer_to_hub(
         print(f"Tokenizer added tokens: {tokenizer.added_tokens_encoder}")
         print(f"Tokenizer repo ID: {repo_id}")
         print(f"Commit message: {commit_message}")
-
-        # Print the last 10 tokens of the vocabulary
-        vocab = tokenizer.get_vocab()
-        sorted_vocab = sorted(vocab.items(), key=lambda x: x[1])
-        last_ten_tokens = sorted_vocab[-10:]
-        print("\nLast 10 tokens in vocabulary:")
-        for token, idx in last_ten_tokens:
-            print(f"  {idx}: {repr(token)}")
 
         tokenizer.push_to_hub(
             repo_id=repo_id,
