@@ -37,6 +37,16 @@ def upload_tokenizer_to_hub(
             if key == "additional_special_tokens":
                 # For lists of additional special tokens
                 if isinstance(value, list):
+                    for token in value:
+                        if isinstance(token, str):
+                            # If it's a string, create an AddedToken
+                            special_tokens_dict.setdefault(
+                                "additional_special_tokens", []
+                            ).append(AddedToken(token, lstrip=True, rstrip=True))
+                        else:
+                            print(
+                                f"Warning: Invalid token type {type(token)} in 'additional_special_tokens'"
+                            )
                     special_tokens_dict[key] = value
                 else:
                     print(
