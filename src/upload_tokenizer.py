@@ -163,11 +163,43 @@ def upload_tokenizer_to_hub(
                         print(f"  Adding '{token}' with ID {token_id} to vocab.json")
                         vocab_dict[token] = token_id
 
-                    # Write the updated vocabulary back to vocab.json
-                    with open(vocab_path, "w") as f:
-                        json.dump(vocab_dict, f, ensure_ascii=False)
+                # Write the updated vocabulary back to vocab.json
+                with open(vocab_path, "w") as f:
+                    json.dump(vocab_dict, f, ensure_ascii=False)
 
-                    print(f"Updated vocab.json with {len(added_tokens)} tokens")
+                # Update tokenizer.json if it exists
+                if os.path.exists(tokenizer_path):
+                    try:
+                        print("Updating tokenizer.json with added tokens...")
+                        with open(tokenizer_path, "r") as f:
+                            tokenizer_data = json.load(f)
+
+                        # Check if model.vocab exists in the tokenizer data
+                        if (
+                            "model" in tokenizer_data
+                            and "vocab" in tokenizer_data["model"]
+                        ):
+                            for token, token_id in added_tokens.items():
+                                if token not in tokenizer_data["model"]["vocab"]:
+                                    print(
+                                        f"  Adding '{token}' with ID {token_id} to tokenizer.json model.vocab"
+                                    )
+                                    tokenizer_data["model"]["vocab"][token] = token_id
+
+                            # Write the updated tokenizer back to tokenizer.json
+                            with open(tokenizer_path, "w") as f:
+                                json.dump(tokenizer_data, f, ensure_ascii=False)
+                            print(
+                                f"Updated tokenizer.json with {len(added_tokens)} tokens"
+                            )
+                        else:
+                            print(
+                                "Warning: 'model.vocab' not found in tokenizer.json, skipping update..."
+                            )
+                    except Exception as e:
+                        print(f"Error updating tokenizer.json: {e}")
+
+                print(f"Updated vocab.json with {len(added_tokens)} tokens")
             except Exception as e:
                 print(f"Error updating vocab.json: {e}")
 
