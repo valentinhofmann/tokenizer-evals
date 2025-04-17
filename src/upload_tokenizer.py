@@ -102,6 +102,12 @@ def upload_tokenizer_to_hub(
 
     with tempfile.TemporaryDirectory() as tmp_dir:
         tokenizer.save_pretrained(tmp_dir)
+        # Print the last 10 items of tokenizer's vocabulary
+        vocab = tokenizer.get_vocab()
+        items = sorted(vocab.items(), key=lambda x: x[1])  # Sort by token id
+        print(f"\nLast 10 items in tokenizer vocabulary:")
+        for token, id in items[-10:]:
+            print(f"  '{token}': {id}")
         print(
             f"Saved tokenizer temporarily to {tmp_dir} to ensure changes are serialized"
         )
