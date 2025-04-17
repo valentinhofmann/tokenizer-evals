@@ -25,7 +25,9 @@ def upload_tokenizer_to_hub(
     tokenizer_class="GPT2Tokenizer",
 ):
     print(f"Loading tokenizer from: {local_tokenizer_path}")
-    tokenizer = AutoTokenizer.from_pretrained(local_tokenizer_path)
+    tokenizer = AutoTokenizer.from_pretrained(
+        local_tokenizer_path, tokenizer_type=tokenizer_class
+    )
 
     if custom_tokens and len(custom_tokens) > 0:
         # Convert tokens to proper format
