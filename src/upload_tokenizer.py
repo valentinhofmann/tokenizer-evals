@@ -24,7 +24,7 @@ def upload_tokenizer_to_hub(
         special_tokens_dict = {}
         for key, value in custom_tokens.items():
             if key == "additional_special_tokens":
-                special_tokens_dict[key] = value
+                special_tokens_dict[key] = AddedToken(value, special=False)
             else:
                 special_tokens_dict[key] = AddedToken(**value, special=False)
 
