@@ -20,31 +20,40 @@ def upload_tokenizer_to_hub(
     tokenizer = AutoTokenizer.from_pretrained(local_tokenizer_path)
 
     if custom_tokens and len(custom_tokens) > 0:
-        # Convert all tokens to AddedToken objects except for 'additional_special_tokens'
+        # Convert tokens to proper format
         special_tokens_dict = {}
         for key, value in custom_tokens.items():
             if key == "additional_special_tokens":
-                # Handle additional_special_tokens as a list of strings
+                # For lists of additional special tokens
                 if isinstance(value, list):
-                    special_tokens_dict[key] = [
-                        AddedToken(token, special=False) for token in value
-                    ]
+                    special_tokens_dict[key] = (
+                        value  # Keep as strings, not AddedToken objects
+                    )
                 else:
                     print(
                         f"Warning: 'additional_special_tokens' should be a list, got {type(value)}"
                     )
                     continue
             else:
-                special_tokens_dict[key] = AddedToken(**value)
+                # For individual special tokens like bos_token, eos_token, etc.
+                if isinstance(value, dict):
+                    # If it's a dictionary of parameters, create an AddedToken
+                    special_tokens_dict[key] = value.get("content", "")
+                else:
+                    # If it's just a string
+                    special_tokens_dict[key] = value
 
+        # Add special tokens
         num_added = tokenizer.add_special_tokens(special_tokens_dict)
-        print(f"Added {num_added} custom tokens: {custom_tokens}")
+        print(f"Added {num_added} custom tokens: {special_tokens_dict}")
 
-    # Check if merges.txt exists
-    merges_path = os.path.join(local_tokenizer_path, "merges.txt")
-    has_merges = os.path.exists(merges_path)
-    if has_merges:
-        print(f"Found merges.txt file at: {merges_path}")
+        # Verify tokens were added
+        print("Verifying special tokens:")
+        for key, value in special_tokens_dict.items():
+            if key == "additional_special_tokens":
+                print(f"  {key}: {tokenizer.additional_special_tokens}")
+            elif hasattr(tokenizer, key):
+                print(f"  {key}: {getattr(tokenizer, key)}")
 
     # Set model max length
     tokenizer.model_max_length = max_length
@@ -57,16 +66,25 @@ def upload_tokenizer_to_hub(
     # Create repository ID
     repo_id = f"{repository_owner}/{repository_name}"
 
-    # Push the tokenizer to the hub
-    tokenizer.push_to_hub(
-        repo_id=repo_id,
-        private=True,
-        commit_message=f"{commit_message}",
-    )
+    # Save the tokenizer locally first to ensure all changes are serialized
+    import tempfile
+
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        tokenizer.save_pretrained(tmp_dir)
+        print(
+            f"Saved tokenizer temporarily to {tmp_dir} to ensure changes are serialized"
+        )
+
+        # Now push from the temporary directory
+        tokenizer.push_to_hub(
+            repo_id=repo_id,
+            private=True,
+            commit_message=f"{commit_message}",
+        )
 
     # Upload all files from the tokenizer directory
     api = HfApi()
-    print(f"Uploading all files from {local_tokenizer_path} to {repo_id}...")
+    print(f"Uploading all remaining files from {local_tokenizer_path} to {repo_id}...")
 
     # Walk through all files in the directory
     for root, _, files in os.walk(local_tokenizer_path):
