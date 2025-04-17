@@ -140,6 +140,18 @@ def upload_tokenizer_to_hub(
             rel_path = os.path.relpath(file_path, tmp_dir)
             print(f"Uploading {rel_path} to repository {repo_id}...")
 
+            # Print the last 10 items of vocab.json if it exists
+            if file_path.endswith("vocab.json") and os.path.exists(file_path):
+                try:
+                    with open(file_path, "r") as f:
+                        vocab = json.load(f)
+                        items = list(vocab.items())
+                        print(f"\nLast 10 items in vocab.json:")
+                        for token, id in items[-10:]:
+                            print(f"  '{token}': {id}")
+                except Exception as e:
+                    print(f"Error reading vocab.json: {e}")
+
             api.upload_file(
                 path_or_fileobj=file_path,
                 path_in_repo=rel_path,
