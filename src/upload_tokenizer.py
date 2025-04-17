@@ -2,6 +2,7 @@ import argparse
 import os
 import json
 
+from tokenizers import decoders
 from huggingface_hub import HfApi
 from transformers import AutoTokenizer, AddedToken
 
@@ -85,15 +86,12 @@ def upload_tokenizer_to_hub(
     tokenizer.chat_template = DEFAULT_CHAT_TEMPLATE
     print("Set default chat template")
 
-    # Set decoder configuration in tokenizer_config instead of directly setting the decoder
-    decoder_config = {
-        "type": "ByteLevel",
-        "add_prefix_space": True,
-        "trim_offsets": True,
-        "use_regex": True,
-    }
-    tokenizer.tokenizer_config["decoder"] = decoder_config
-    print("Added ByteLevel decoder configuration to tokenizer_config")
+    tokenizer.backend_tokenizer.decoder = decoders.ByteLevel(
+        add_prefix_space=True,
+        trim_offsets=True,
+        use_regex=True,
+    )
+    print("Added ByteLevel decoder configuration!")
 
     # Create repository ID
     repo_id = f"{repository_owner}/{repository_name}"
