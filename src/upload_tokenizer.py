@@ -118,6 +118,7 @@ def upload_tokenizer_to_hub(
         print(f"Commit message: {commit_message}")
 
         tokenizer.push_to_hub(
+            use_temp_dir=True,
             repo_id=repo_id,
             private=True,
             commit_message=f"{commit_message}",
