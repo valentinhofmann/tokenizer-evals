@@ -118,24 +118,34 @@ def upload_tokenizer_to_hub(
         print(f"Commit message: {commit_message}")
 
         # Print paths for important tokenizer files
-        tokenizer_json_path = os.path.join(tmp_dir, "tokenizer.json")
-        vocab_json_path = os.path.join(tmp_dir, "vocab.json")
+        tokenizer_path = os.path.join(tmp_dir, "tokenizer.json")
+        vocab_path = os.path.join(tmp_dir, "vocab.json")
         print(
-            f"tokenizer.json location: {os.path.abspath(tokenizer_json_path) if os.path.exists(tokenizer_json_path) else 'Not found'}"
+            f"tokenizer.json location: {os.path.abspath(tokenizer_path) if os.path.exists(tokenizer_path) else 'Not found'}"
         )
         print(
-            f"vocab.json location: {os.path.abspath(vocab_json_path) if os.path.exists(vocab_json_path) else 'Not found'}"
+            f"vocab.json location: {os.path.abspath(vocab_path) if os.path.exists(vocab_path) else 'Not found'}"
         )
 
-        # Create HfApi instance for potential file operations
-        # api = HfApi()
-        # api.upload_file(
-        #      path_or_fileobj=file_path,
-        #      path_in_repo=rel_path,
-        #      repo_id=repo_id,
-        #      repo_type="model",
-        #      commit_message=f"Upload {rel_path}",
-        #  )
+        api = HfApi()
+
+        for file_path in [
+            tokenizer_path,
+            vocab_path,
+        ]:
+            if not os.path.exists(file_path):
+                print(f"Warning: {file_path} does not exist, skipping upload.")
+                continue
+
+            rel_path = os.path.relpath(file_path, tmp_dir)
+            print(f"Uploading {rel_path} to repository {repo_id}...")
+
+            api.upload_file(
+                path_or_fileobj=file_path,
+                path_in_repo=rel_path,
+                repo_id=repo_id,
+                commit_message=f"{commit_message}",
+            )
 
         tokenizer.push_to_hub(
             use_temp_dir=True,
