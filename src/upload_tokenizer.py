@@ -7,6 +7,13 @@ from transformers import AutoTokenizer, AddedToken
 
 DEFAULT_CHAT_TEMPLATE = "{% for message in messages %}{{'<|im_start|>' + message['role'] + '\n' + message['content'] + '<|im_end|>' + '\n'}}{% endfor %}{% if add_generation_prompt %}{{ '<|im_start|>assistant\n' }}{% endif %}"
 
+#   "decoder": {
+#     "type": "ByteLevel",
+#     "add_prefix_space": true,
+#     "trim_offsets": true,
+#     "use_regex": true
+#   }
+
 
 def upload_tokenizer_to_hub(
     local_tokenizer_path,
@@ -15,6 +22,7 @@ def upload_tokenizer_to_hub(
     commit_message=None,
     custom_tokens=None,
     max_length=8192,
+    tokenizer_class="GPT2Tokenizer",
 ):
     print(f"Loading tokenizer from: {local_tokenizer_path}")
     tokenizer = AutoTokenizer.from_pretrained(local_tokenizer_path)
@@ -74,6 +82,19 @@ def upload_tokenizer_to_hub(
     # Set chat template
     tokenizer.chat_template = DEFAULT_CHAT_TEMPLATE
     print("Set default chat template")
+
+    # Set decoder configuration
+    decoder_config = {
+        "type": "ByteLevel",
+        "add_prefix_space": True,
+        "trim_offsets": True,
+        "use_regex": True,
+    }
+    tokenizer.decoder = decoder_config
+    print("Set ByteLevel decoder configuration")
+
+    tokenizer.tokenizer_class = tokenizer_class
+    print(f"Set tokenizer class to {tokenizer_class}")
 
     # Create repository ID
     repo_id = f"{repository_owner}/{repository_name}"
