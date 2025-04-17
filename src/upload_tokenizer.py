@@ -2,7 +2,7 @@ import argparse
 import os
 import json
 
-from huggingface_hub import HfApi, login
+from huggingface_hub import HfApi
 from transformers import AutoTokenizer, AddedToken
 
 DEFAULT_CHAT_TEMPLATE = "{% for message in messages %}{{'<|im_start|>' + message['role'] + '\n' + message['content'] + '<|im_end|>' + '\n'}}{% endfor %}{% if add_generation_prompt %}{{ '<|im_start|>assistant\n' }}{% endif %}"
@@ -55,17 +55,25 @@ def upload_tokenizer_to_hub(
         commit_message=f"{commit_message}",
     )
 
-    # If merges.txt exists, add it to the repository
-    if has_merges:
-        api = HfApi()
-        api.upload_file(
-            path_or_fileobj=merges_path,
-            path_in_repo="merges.txt",
-            repo_id=repo_id,
-            repo_type="model",
-            commit_message="Add merges.txt file",
-        )
-        print("Added merges.txt file to the repository")
+    # Upload all files from the tokenizer directory
+    api = HfApi()
+    print(f"Uploading all files from {local_tokenizer_path} to {repo_id}...")
+
+    # Walk through all files in the directory
+    for root, _, files in os.walk(local_tokenizer_path):
+        for file in files:
+            file_path = os.path.join(root, file)
+            rel_path = os.path.relpath(file_path, local_tokenizer_path)
+
+            # Upload the file
+            api.upload_file(
+                path_or_fileobj=file_path,
+                path_in_repo=rel_path,
+                repo_id=repo_id,
+                repo_type="model",
+                commit_message=f"Upload {rel_path}",
+            )
+            print(f"Uploaded {rel_path}")
 
     print(f"Successfully uploaded tokenizer to: {repo_id} (private repository)")
 
